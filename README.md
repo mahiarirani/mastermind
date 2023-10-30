@@ -7,7 +7,7 @@
 Welcome to the Alpine.js and Tailwind CSS-powered Mastermind game! Challenge yourself and showcase your front-end coding skills in this classic code-breaking game.
 
 ## Demo
-Check out the live demo of the Mastermind game here. Enjoy playing!
+Check out the live demo of the Mastermind game [here](https://mahiarirani.github.io/mastermind/). Enjoy playing!
 
 ## How to Play
 1. Start Guessing: Begin the game by selecting colors.
