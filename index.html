@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mastermind</title>
+    <link rel="stylesheet" href="style.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="game.js"></script>
+</head>
+<body class="bg-light-midnight flex flex-col min-h-screen overscroll-none" x-data="Game()" @pointerup="closeSelector()">
+<header class="bg-dark-midnight mb-16 z-10">
+    <div class="container mx-auto py-8">
+        <h1 class="text-5xl font-semibold text-center text-light-cloud">Mastermind</h1>
+    </div>
+</header>
+<main class="container mx-auto mb-auto select-none py-12 touch-none">
+    <section class="grid gap-8 justify-center py-3">
+        <!-- Answer Row -->
+        <template x-for="(answer, row) in answers" :key="row">
+            <div class="grid grid-cols-4 gap-6 items-center relative">
+                <!-- Answer -->
+                <template x-for="(slot, id) in answer.slots" :key="id">
+                    <div class="relative">
+                        <!-- Alert -->
+                        <div class="absolute w-12 h-12 scale-90 rounded-xl bg-light-gray opacity-50 animate-[ping_1s_ease-in-out]"
+                             x-show="slot.alertFlag"></div>
+                        <!-- Item -->
+                        <div class="relative w-12 h-12 transition-all duration-100"
+                             :class="[
+                                    answer.status !== STATUS.ACTIVE ?
+                                        'cursor-default' : slot.active ?
+                                            'cursor-grab active:cursor-grabbing' :
+                                            'cursor-pointer',
+                                    slot.active ?
+                                        'rounded-none drop-shadow-none z-20' :
+                                        'rounded-xl drop-shadow',
+                                    slot.active ? 'bg-dark-gray' :
+                                        slot.color ? slot.color.tag : 'bg-light-gray hover:bg-dark-gray'
+                                ]"
+                             id="slot"
+                             @pointerdown.prevent="openSelector(slot)">
+                        </div>
+                        <!-- Color Selector -->
+                        <div class="absolute grid grid-cols-3 w-36 h-36 z-10 bg-dark-gray
+                                    -left-full -top-full -mt-[2px]
+                                    shadow-xl rounded-xl overflow-hidden
+                                    border-2 drop-shadow-xl"
+                             x-show="slot.active"
+                             x-transition:enter="transition ease-out duration-100"
+                             x-transition:enter-start="opacity-100 scale-[0.3]"
+                             x-transition:enter-end="opacity-100 scale-100"
+                             x-transition:leave="transition ease-in duration-100"
+                             x-transition:leave-start="opacity-100 scale-100"
+                             x-transition:leave-end="opacity-100 scale-[0.3]"
+                        >
+                            <template x-for="(colorKey, index) in colorKeys">
+                                <div class="w-12 h-12 cursor-pointer"
+                                     :class="[
+                                            colors[colorKey].tag,
+                                            index === 4 && 'col-start-3'
+                                        ]"
+                                     @pointerup.prevent="updateSelector(slot, colors[colorKey])"
+                                ></div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+                <!-- ACTIVE -->
+                <div class="absolute -right-28 grid grid-cols-2 gap-2 transition-transform"
+                     x-show="answer.status === STATUS.ACTIVE">
+                    <div class="flex justify-center items-center drop-shadow
+                                rounded-full w-8 h-8 cursor-pointer group
+                                border-2 border-light-gray hover:border-flat-green"
+                         @click="submitAnswer(answer)">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -1 24 24"
+                             class="w-6 h-6 fill-light-gray group-hover:fill-flat-green">
+                            <polygon points="9.707 14.293 19 5 20.414 6.414 9.707 17.121 4 11.414 5.414 10"/>
+                        </svg>
+                    </div>
+                    <div class="flex justify-center items-center drop-shadow
+                                rounded-full w-8 h-8 cursor-pointer group hover:animate-[pulse_2s_ease-in-out_infinite]
+                                border-2 border-light-gray hover:border-flat-red"
+                         x-show="answer.slots.some(slot => slot.color !== null)"
+                         @click="answer.slots.forEach(slot => clearSelector(slot))">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"
+                             class="w-6 h-6 fill-light-gray group-hover:fill-flat-red">
+                            <g transform="translate(91.520000, 91.520000)">
+                                <polygon
+                                        points="328.96 30.2933333 298.666667 1.42108547e-14 164.48 134.4 30.2933333 1.42108547e-14 1.42108547e-14 30.2933333 134.4 164.48 1.42108547e-14 298.666667 30.2933333 328.96 164.48 194.56 298.666667 328.96 328.96 298.666667 194.56 164.48"/>
+                            </g>
+                        </svg>
+                    </div>
+                    <div class="flex justify-center items-center drop-shadow
+                                rounded-full w-8 h-8 cursor-pointer group hover:animate-[pulse_2s_ease-in-out_infinite]
+                                border-2 border-light-gray hover:border-flat-blue"
+                         x-show="answers.indexOf(answer) !== 0 && answer.slots.every(slot => slot.color === null)"
+                         @click="restartGame()">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 0 26 26"
+                             class="w-6 h-6 fill-light-gray group-hover:fill-flat-blue transition-colors">
+                            <path d="M6.87348 7.87338C9.01606 5.7308 12.1674 5.20902 14.8007 6.31041L15.9309 5.18019C12.6515 3.53111 8.55119 4.07435 5.81282 6.81272C2.39573 10.2298 2.39573 15.77 5.81282 19.1871C9.2299 22.6042 14.7701 22.6042 18.1872 19.1871C20.1746 17.1997 21.0057 14.4933 20.6819 11.9072C20.6304 11.4962 20.2555 11.2048 19.8445 11.2562C19.4335 11.3077 19.142 11.6826 19.1935 12.0936C19.4622 14.24 18.7727 16.4802 17.1265 18.1264C14.2952 20.9577 9.70478 20.9577 6.87348 18.1264C4.04217 15.2951 4.04217 10.7047 6.87348 7.87338Z"/>
+                            <path d="M18.7212 4.20119C18.7212 3.89785 18.5384 3.62437 18.2582 3.50828C17.9779 3.3922 17.6553 3.45637 17.4408 3.67086L15.9314 5.18028L14.8012 6.3105L13.1982 7.9135C12.9837 8.128 12.9195 8.45059 13.0356 8.73085C13.1517 9.0111 13.4252 9.19383 13.7285 9.19383H17.9712C18.3854 9.19383 18.7212 8.85805 18.7212 8.44383V4.20119Z"/>
+                        </svg>
+                    </div>
+                </div>
+                <!-- COMPLETE -->
+                <div class="absolute -right-28 grid grid-cols-2 gap-2 transition-transform"
+                     x-show="answer.status === STATUS.COMPLETE">
+                    <div class="flex justify-center items-center drop-shadow w-8 h-8 cursor-default">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -1 24 24"
+                             class="w-6 h-6 fill-flat-yellow">
+                            <polygon points="9.707 14.293 19 5 20.414 6.414 9.707 17.121 4 11.414 5.414 10"/>
+                        </svg>
+                    </div>
+                    <div class="flex justify-center items-center drop-shadow hover:animate-[spin_1s_1]
+                                rounded-full w-8 h-8 cursor-pointer group"
+                         @click="restartGame()"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 0 26 26"
+                             class="w-6 h-6 fill-light-gray group-hover:fill-flat-blue transition-colors">
+                            <path d="M6.87348 7.87338C9.01606 5.7308 12.1674 5.20902 14.8007 6.31041L15.9309 5.18019C12.6515 3.53111 8.55119 4.07435 5.81282 6.81272C2.39573 10.2298 2.39573 15.77 5.81282 19.1871C9.2299 22.6042 14.7701 22.6042 18.1872 19.1871C20.1746 17.1997 21.0057 14.4933 20.6819 11.9072C20.6304 11.4962 20.2555 11.2048 19.8445 11.2562C19.4335 11.3077 19.142 11.6826 19.1935 12.0936C19.4622 14.24 18.7727 16.4802 17.1265 18.1264C14.2952 20.9577 9.70478 20.9577 6.87348 18.1264C4.04217 15.2951 4.04217 10.7047 6.87348 7.87338Z"/>
+                            <path d="M18.7212 4.20119C18.7212 3.89785 18.5384 3.62437 18.2582 3.50828C17.9779 3.3922 17.6553 3.45637 17.4408 3.67086L15.9314 5.18028L14.8012 6.3105L13.1982 7.9135C12.9837 8.128 12.9195 8.45059 13.0356 8.73085C13.1517 9.0111 13.4252 9.19383 13.7285 9.19383H17.9712C18.3854 9.19383 18.7212 8.85805 18.7212 8.44383V4.20119Z"/>
+                        </svg>
+                    </div>
+                </div>
+                <!-- INCOMPLETE -->
+                <div class="absolute -right-28 grid grid-cols-2 gap-2 transition-transform"
+                     x-show="answer.status === STATUS.INCOMPLETE"
+                     x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="opacity-0 scale-90"
+                     x-transition:enter-end="opacity-100 scale-100">
+                    <div class="grid grid-cols-2 gap-1 rounded-full w-8 h-8 overflow-hidden">
+                        <template x-for="exact in answer.stats.exact">
+                            <div class="w-3.5 h-3.5 bg-flat-green"></div>
+                        </template>
+                        <template x-for="have in answer.stats.have">
+                            <div class="w-3.5 h-3.5 bg-flat-yellow"></div>
+                        </template>
+                        <template x-for="rest in answer.stats.rest">
+                            <div class="w-3.5 h-3.5 bg-flat-red"></div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </section>
+</main>
+<footer class="bg-dark-midnight mt-16">
+    <div class="container mx-auto text-center flex justify-center items-center p-8 text-xl text-dark-cloud space-x-4">
+        <p class="cursor-default">
+            Built with ❤️ Using
+            <a href="https://alpinejs.dev/" class="text-light-cloud">AlpineJs</a>,
+            <a href="https://tailwindcss.com/" class="text-light-cloud">Tailwind</a>.
+        </p>
+        <a href="https://github.com/mahiarirani/mastermind"
+           class="py-1 px-3 rounded-xl text-lg text-dark-cloud bg-dark-midnight hover:bg-light-midnight transition">
+            ⭐ GitHub
+        </a>
+    </div>
+</footer>
+</body>
+</html>
